@@ -1,6 +1,7 @@
 import pytest
-from unittest.mock import patch
-from main import parse_timeline_for_favorites
+import requests
+from unittest.mock import patch, Mock
+from main import parse_timeline_for_favorites, get_timeline
 
 
 SAMPLE_DATA = [
@@ -37,6 +38,12 @@ def mock_settings(monkeypatch):
 def mock_logger():
     with patch("main.log.info") as mock_log:
         yield mock_log
+
+
+@pytest.fixture
+def mock_headers():
+    with patch('main.headers') as mock_header:
+        yield mock_header
 
 
 def test_parse_timeline_for_favorites_no_limit(mock_settings, mock_logger):
@@ -82,3 +89,70 @@ def test_parse_timeline_for_favorites_empty_input(mock_settings, mock_logger):
 
     assert len(result) == 0
     mock_logger.assert_any_call("found 0 posts to favorite from list of 0")
+
+
+def test_get_timeline_success(mocker, mock_settings, mock_logger, mock_headers):
+    """
+    Test that the function returns the correct JSON response when the request is successful.
+    """
+    # Mock the requests.get call
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"data": "timeline_data"}
+    mocker.patch("requests.get", return_value=mock_response)
+    # Call the function
+    url = "https://example.com/api/timeline"
+    result = get_timeline(url)
+
+    # Assertions
+    assert result == {"data": "timeline_data"}
+    requests.get.assert_called_once_with(
+        url,
+        headers=mock_headers,
+        params={"min_id": 1, "limit": 10}
+    )
+
+
+def test_get_timeline_failure(mocker, mock_settings, mock_logger, mock_headers):
+    """
+    Test that the function returns an empty dictionary when the request fails.
+    """
+    # Mock the requests.get call to simulate a failure
+    mock_response = Mock()
+    mock_response.status_code = 404
+    mocker.patch("requests.get", return_value=mock_response)
+    # headers = mock_headers
+    # Call the function
+    url = "https://example.com/api/timeline"
+    result = get_timeline(url)
+
+    # Assertions
+    assert result == {}
+    requests.get.assert_called_once_with(
+        url,
+        headers=mock_headers,
+        params={"min_id": 1, "limit": 10}
+    )
+
+
+def test_get_timeline_custom_limit(mocker, mock_settings, mock_logger, mock_headers):
+    """
+    Test that the function respects the custom limit parameter.
+    """
+    # Mock the requests.get call
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"data": "timeline_data"}
+    mocker.patch("requests.get", return_value=mock_response)
+
+    # Call the function with a custom limit
+    url = "https://example.com/api/timeline"
+    result = get_timeline(url, limit=5)
+
+    # Assertions
+    assert result == {"data": "timeline_data"}
+    requests.get.assert_called_once_with(
+        url,
+        headers=mock_headers,
+        params={"min_id": 1, "limit": 5}
+    )

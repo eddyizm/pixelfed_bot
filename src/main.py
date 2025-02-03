@@ -41,7 +41,7 @@ def random_time():
     return sleep_time
 
 
-def get_timeline(url: str, timeline_type: str = 'home', limit: int = 6) -> dict:
+def get_timeline(url: str, timeline_type: str = 'home', limit: int = 10) -> dict:
     log.info(f'getting timeline {timeline_type} @ {url}')
     params = {
         "min_id": 1,
@@ -107,17 +107,26 @@ def read_json(data):
         return json.load(json_file)
 
 
+def get_timeline_url(timeline_type: str) -> tuple:
+    timeline_base = f'{BASE_URL}{API_VERSION}timelines'
+    if timeline_type == 'notifications':
+        return (f'{BASE_URL}{API_VERSION}/{timeline_type}', timeline_type)
+    return (f'{timeline_base}/{timeline_type}', timeline_type)
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Get home, local, notification timelines and like posts.',
+        description='Get home, public, notification timelines and like posts.',
         epilog='the pixels go on and on...',
         prog='Pixelfed Bot'
     )
-    parser.add_argument('-t', '--timeline_type', help="timeline type", required=True)
+    parser.add_argument('-t', '--timeline_type', type=str, choices=('home', 'public', 'notifications'), help="timeline type", required=True)
     parser.add_argument('--version', action='version', version='%(prog)s 0.3')
     args = parser.parse_args()
     log.info('starting pixelfed bot')
-    server_response = get_timeline(url=home_endpoint, timeline_type=args.timeline_type)
+    url_args = get_timeline_url(args.timeline_type)
+    server_response = get_timeline(url=url_args[0], timeline_type=url_args[1])
+    # temp fall back for home feed since it's small.
     if not server_response:
         server_response = get_timeline(url=public_endpoint, timeline_type='public')
     # notification_response = get_timeline(notification_endpoint)
