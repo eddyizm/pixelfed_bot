@@ -78,23 +78,23 @@ def fave_post(status_id):
         return None
 
 
-def filter_notification_faves(data: list, limit: int = 10) -> list:
-    result = [d for d in data if d['type'] == 'favourite']
-    unique_account_ids = set()  # Use a set to automatically handle duplicates
-    for item in result:
+def filter_notification_faves(data: list, limit: int = 5) -> list:
+    if limit < 1:
+        return []
+    faves = [d for d in data if d['type'] == 'favourite']
+    unique_account_ids = set()
+    for item in faves:
         if 'account' in item and 'id' in item['account']:
             unique_account_ids.add(item['account']['id'])
 
-    # Convert the set to a list (optional, for easier handling)
-    unique_account_ids = list(unique_account_ids)
-    log.info(len(result))
-    # write_to_json(result)
+    return list(unique_account_ids)[:limit]
 
 
-def get_status_by_id(id: str, limit: int = 10):
+def get_status_by_id(id: str, limit: int = 6):
     url = f'{BASE_URL}{API_VERSION}accounts/{id}/statuses'
     param = {'limit': str(limit)}
-    response = requests.get(url, headers=headers, params=param)
+    print(url)
+    # response = requests.get(url, headers=headers, params=param)
 
 
 def write_to_json(data):
@@ -129,10 +129,7 @@ def main():
     # temp fall back for home feed since it's small.
     if not server_response:
         server_response = get_timeline(url=public_endpoint, timeline_type='public')
-    # notification_response = get_timeline(notification_endpoint)
-    # write_to_json(public_response)
-    # data = read_json('response.json')
-    # filter_notification_faves(data)
+    # filter_notification_faves(server_response)
     unfaved = parse_timeline_for_favorites(server_response, limit=10)
     for post in unfaved:
         random_time()
