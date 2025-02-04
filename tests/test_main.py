@@ -10,8 +10,6 @@ from main import (
 )
 
 
-
-
 class Settings:
     account_id = 4
 
@@ -152,7 +150,7 @@ def test_parse_timeline_for_favorites_with_limit(mock_settings, parse_timeline_f
 
     # Assert logging was called correctly
     mock_logger.assert_any_call("found 2 posts to favorite from list of 4")
-    mock_logger.assert_any_call("Limited results to 1 posts")
+    mock_logger.assert_any_call("Limiting results to 1 posts")
 
 
 def test_parse_timeline_for_favorites_all_favorited(mock_settings, mock_logger):
@@ -165,7 +163,7 @@ def test_parse_timeline_for_favorites_all_favorited(mock_settings, mock_logger):
 
     # Assert no results
     assert len(result) == 0
-    mock_logger.assert_any_call("found 0 posts to favorite from list of 2")
+    mock_logger.assert_any_call("No posts found: 0")
 
 
 def test_parse_timeline_for_favorites_empty_input(mock_settings, mock_logger):
@@ -173,7 +171,7 @@ def test_parse_timeline_for_favorites_empty_input(mock_settings, mock_logger):
     result = parse_timeline_for_favorites([])
 
     assert len(result) == 0
-    mock_logger.assert_any_call("found 0 posts to favorite from list of 0")
+    mock_logger.assert_any_call("No posts found: 0")
 
 
 def test_get_timeline_success(mocker, mock_settings, mock_logger, mock_headers):

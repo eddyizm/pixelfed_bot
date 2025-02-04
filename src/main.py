@@ -49,7 +49,7 @@ def get_timeline(url: str, timeline_type: str = 'home', limit: int = 10) -> dict
     }
     response = requests.get(url, headers=headers, params=params)
     if response.status_code == 200:
-        log.info('Response successful, returning response.json')
+        log.info('Response successful')
         return response.json()
     else:
         log.info(f"Failed to fetch data. Status code: {response.status_code}")
@@ -59,10 +59,13 @@ def get_timeline(url: str, timeline_type: str = 'home', limit: int = 10) -> dict
 def parse_timeline_for_favorites(data: list, limit: int = None) -> list:
     # filter only unfavorited status and ignore your own id.
     result = [d for d in data if d['favourited'] is False and d['account']['id'] != settings.account_id]
+    if not result:
+        log.info(f'No posts found: {len(result)}')
+        return []
     log.info(f'found {len(result)} posts to favorite from list of {len(data)}')
     if limit is not None and limit > 0:
         result = result[:limit]
-        log.info(f'Limited results to {limit} posts')
+        log.info(f'Limiting results to {limit} posts')
     return result
 
 
