@@ -24,10 +24,6 @@ token = settings.token
 BASE_URL = 'https://pixelfed.social/'
 API_VERSION = 'api/v1/'
 verify_cred_endpoint = 'accounts/verify_credentials'
-timeline_base = f'{BASE_URL}{API_VERSION}timelines'
-home_endpoint = f'{timeline_base}/home'
-public_endpoint = f'{timeline_base}/public'
-notification_endpoint = f'{BASE_URL}{API_VERSION}notifications'
 headers = {
     "Authorization": f"Bearer {token}"
 }
@@ -35,7 +31,7 @@ headers = {
 
 def random_time():
     '''Use this to randomize actions'''
-    sleep_time = randrange(10, 300)
+    sleep_time = randrange(5, 120)
     log.info(f'sleeping for {sleep_time} seconds...')
     time.sleep(sleep_time)
     return sleep_time
@@ -93,11 +89,18 @@ def filter_notification_faves(data: list, limit: int = 5) -> list:
     return list(unique_account_ids)[:limit]
 
 
-def get_status_by_id(id: str, limit: int = 6):
+def get_status_by_id(id: str, limit: int = 6) -> dict:
     url = f'{BASE_URL}{API_VERSION}accounts/{id}/statuses'
     param = {'limit': str(limit)}
-    print(url)
-    # response = requests.get(url, headers=headers, params=param)
+    response = requests.get(url, headers=headers, params=param)
+    return response.json()
+
+
+def fave_unfaved(server_response: dict, limit: int = 6):
+    unfaved = parse_timeline_for_favorites(server_response, limit=limit)
+    for post in unfaved:
+        random_time()
+        fave_post(post['id'])
 
 
 def write_to_json(data):
@@ -113,8 +116,37 @@ def read_json(data):
 def get_timeline_url(timeline_type: str) -> tuple:
     timeline_base = f'{BASE_URL}{API_VERSION}timelines'
     if timeline_type == 'notifications':
-        return (f'{BASE_URL}{API_VERSION}/{timeline_type}', timeline_type)
+        return (f'{BASE_URL}{API_VERSION}{timeline_type}', timeline_type)
     return (f'{timeline_base}/{timeline_type}', timeline_type)
+
+
+def process_notification_timeline(url_args: tuple):
+    server_response = get_timeline(url=url_args[0], timeline_type=url_args[1])
+    id_list = filter_notification_faves(server_response)
+    for id in id_list:
+        server_response = get_status_by_id(id, limit=3)
+        random_time()
+        fave_unfaved(server_response)
+
+
+def process_home_timeline(url_args: tuple):
+    server_response = get_timeline(url=url_args[0], timeline_type=url_args[1])
+    fave_unfaved(server_response, limit=10)
+
+
+def process_public_timeline(url_args: tuple):
+    server_response = get_timeline(url=url_args[0], timeline_type=url_args[1])
+    fave_unfaved(server_response, limit=10)
+
+
+def handle_timeline(url_args: tuple):
+    match url_args[1]:
+        case 'home':
+            return process_home_timeline(url_args)
+        case 'public':
+            return process_public_timeline(url_args)
+        case 'notifications':
+            return process_notification_timeline(url_args)
 
 
 def main():
@@ -124,19 +156,11 @@ def main():
         prog='Pixelfed Bot'
     )
     parser.add_argument('-t', '--timeline_type', type=str, choices=('home', 'public', 'notifications'), help="timeline type", required=True)
-    parser.add_argument('--version', action='version', version='%(prog)s 0.3')
+    parser.add_argument('--version', action='version', version='%(prog)s 0.4')
     args = parser.parse_args()
     log.info('starting pixelfed bot')
     url_args = get_timeline_url(args.timeline_type)
-    server_response = get_timeline(url=url_args[0], timeline_type=url_args[1])
-    # temp fall back for home feed since it's small.
-    if not server_response:
-        server_response = get_timeline(url=public_endpoint, timeline_type='public')
-    # filter_notification_faves(server_response)
-    unfaved = parse_timeline_for_favorites(server_response, limit=10)
-    for post in unfaved:
-        random_time()
-        fave_post(post['id'])
+    handle_timeline(url_args)
 
 
 if __name__ == '__main__':

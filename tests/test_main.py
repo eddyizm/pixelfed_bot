@@ -239,16 +239,3 @@ def test_get_timeline_custom_limit(mocker, mock_settings, mock_logger, mock_head
         headers=mock_headers,
         params={"min_id": 1, "limit": 5}
     )
-
-
-def test_filter_notification_faves(mocker, mock_settings, mock_logger, mock_headers):
-    """
-    Test that the function returns the correct JSON response when the request is successful.
-    """
-    # Mock the requests.get call
-    server_response = read_json('notifications.json')
-    id_list = filter_notification_faves(server_response)
-    print(type(id_list))
-    print(id_list)
-    for id in id_list:
-        get_status_by_id(id)
