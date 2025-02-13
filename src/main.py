@@ -161,6 +161,7 @@ def process_public_timeline(url_args: tuple) -> int:
 def process_follower_timeline() -> int:
     followers = get_random_followers()
     server_response = get_status_by_id(followers[0], limit=5)
+    random_time()
     return fave_unfaved(server_response, limit=10)
 
 
@@ -187,8 +188,11 @@ def main():
     create_tables()
     url_args = get_timeline_url(args.timeline_type)
     like_count = handle_timeline(url_args)
-    while settings.likes_per_session > like_count:
+    log.info(f'total like count: {like_count}')
+    while settings.likes_per_session >= like_count:
         like_count = like_count + process_follower_timeline()
+        # TODO add other options like notifications, public, and following list
+    log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
 
 
 if __name__ == '__main__':
