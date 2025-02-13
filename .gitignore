@@ -173,3 +173,4 @@ cython_debug/
 # project files
 notifications.json
 response.json
+*.db
