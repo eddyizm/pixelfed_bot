@@ -190,8 +190,11 @@ def main():
     like_count = handle_timeline(url_args)
     log.info(f'total like count: {like_count}')
     while settings.likes_per_session >= like_count:
+        random_time()
         like_count = like_count + process_follower_timeline()
-        # TODO add other options like notifications, public, and following list
+        timeline = random.shuffle(timeline_types)
+        like_count = like_count + handle_timeline(get_timeline_url(timeline[0]))
+        # TODO add following list
     log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
 
 
