@@ -19,7 +19,7 @@ handlers = [
         backupCount=5, encoding=None, delay=0
     )
 ]
-log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.INFO)
+log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.ERROR)
 
 
 timeline_types = ['home', 'public', 'notifications']
@@ -166,6 +166,7 @@ def process_follower_timeline() -> int:
 
 
 def handle_timeline(url_args: tuple):
+    breakpoint()
     match url_args[1]:
         case 'home':
             return process_home_timeline(url_args)
@@ -193,12 +194,12 @@ def main():
         while settings.likes_per_session >= like_count:
             random_time()
             like_count = like_count + process_follower_timeline()
-            timeline = random.shuffle(timeline_types)
-            like_count = like_count + handle_timeline(get_timeline_url(timeline[0]))
+            random.shuffle(timeline_types)
+            like_count = like_count + handle_timeline(get_timeline_url(timeline_types[0]))
             # TODO add following list
         log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
-    except PixelFedBotException:
-        log.exception('sorry bob...:', exc_info=True)
+    except PixelFedBotException as ex:
+        log.exception(ex, exc_info=True)
 
 
 if __name__ == '__main__':
