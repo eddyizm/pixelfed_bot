@@ -7,7 +7,7 @@ import logging as log
 from random import randrange
 from logging.handlers import RotatingFileHandler
 
-from config import Settings
+from config import Settings, PixelFedBotException
 from dal import create_tables, load_followers
 
 settings = Settings()
@@ -176,26 +176,29 @@ def handle_timeline(url_args: tuple):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Get home, public, notification timelines and like posts.',
-        epilog='the pixels go on and on...',
-        prog='Pixelfed Bot'
-    )
-    parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help="timeline type", required=True)
-    parser.add_argument('--version', action='version', version='%(prog)s 0.4')
-    args = parser.parse_args()
-    log.info('starting pixelfed bot')
-    create_tables()
-    url_args = get_timeline_url(args.timeline_type)
-    like_count = handle_timeline(url_args)
-    log.info(f'total like count: {like_count}')
-    while settings.likes_per_session >= like_count:
-        random_time()
-        like_count = like_count + process_follower_timeline()
-        timeline = random.shuffle(timeline_types)
-        like_count = like_count + handle_timeline(get_timeline_url(timeline[0]))
-        # TODO add following list
-    log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
+    try:
+        parser = argparse.ArgumentParser(
+            description='Get home, public, notification timelines and like posts.',
+            epilog='the pixels go on and on...',
+            prog='Pixelfed Bot'
+        )
+        parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help="timeline type", required=True)
+        parser.add_argument('--version', action='version', version='%(prog)s 0.4')
+        args = parser.parse_args()
+        log.info('starting pixelfed bot')
+        create_tables()
+        url_args = get_timeline_url(args.timeline_type)
+        like_count = handle_timeline(url_args)
+        log.info(f'total like count: {like_count}')
+        while settings.likes_per_session >= like_count:
+            random_time()
+            like_count = like_count + process_follower_timeline()
+            timeline = random.shuffle(timeline_types)
+            like_count = like_count + handle_timeline(get_timeline_url(timeline[0]))
+            # TODO add following list
+        log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
+    except PixelFedBotException:
+        log.exception('sorry bob...:', exc_info=True)
 
 
 if __name__ == '__main__':

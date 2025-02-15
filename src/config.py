@@ -12,3 +12,7 @@ class Settings:
         self.app_log = os.getenv('APP_LOG')
         self.account_id = os.getenv('ACCOUNT_ID')
         self.likes_per_session = 10
+
+
+class PixelFedBotException(Exception):
+    pass
