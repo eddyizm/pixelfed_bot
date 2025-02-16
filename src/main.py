@@ -166,7 +166,6 @@ def process_follower_timeline() -> int:
 
 
 def handle_timeline(url_args: tuple):
-    breakpoint()
     match url_args[1]:
         case 'home':
             return process_home_timeline(url_args)
@@ -190,7 +189,7 @@ def main():
         create_tables()
         url_args = get_timeline_url(args.timeline_type)
         like_count = handle_timeline(url_args)
-        log.info(f'total like count: {like_count}')
+        log.info(f'first pass count: {like_count}')
         while settings.likes_per_session >= like_count:
             random_time()
             like_count = like_count + process_follower_timeline()
