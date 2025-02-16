@@ -19,7 +19,7 @@ handlers = [
         backupCount=5, encoding=None, delay=0
     )
 ]
-log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.ERROR)
+log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.INFO)
 
 
 timeline_types = ['home', 'public', 'notifications']
@@ -166,7 +166,6 @@ def process_follower_timeline() -> int:
 
 
 def handle_timeline(url_args: tuple):
-    breakpoint()
     match url_args[1]:
         case 'home':
             return process_home_timeline(url_args)
@@ -190,16 +189,17 @@ def main():
         create_tables()
         url_args = get_timeline_url(args.timeline_type)
         like_count = handle_timeline(url_args)
-        log.info(f'total like count: {like_count}')
+        log.info(f'first pass count: {like_count}')
         while settings.likes_per_session >= like_count:
             random_time()
             like_count = like_count + process_follower_timeline()
             random.shuffle(timeline_types)
             like_count = like_count + handle_timeline(get_timeline_url(timeline_types[0]))
             # TODO add following list
+            # TODO Add tag list to like
         log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
     except PixelFedBotException as ex:
-        log.exception(ex, exc_info=True)
+        log.error(ex, exc_info=True)
 
 
 if __name__ == '__main__':
