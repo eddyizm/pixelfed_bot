@@ -190,11 +190,17 @@ def main():
         url_args = get_timeline_url(args.timeline_type)
         like_count = handle_timeline(url_args)
         log.info(f'first pass count: {like_count}')
-        while settings.likes_per_session >= like_count:
+        while like_count < settings.likes_per_session:
             random_time()
-            like_count = like_count + process_follower_timeline()
+            new_likes = process_follower_timeline()
+            like_count += new_likes
+            log.info(f'Liked {new_likes} posts from follower timeline. Total likes: {like_count}')
+            if like_count >= settings.likes_per_session:
+                break
             random.shuffle(timeline_types)
-            like_count = like_count + handle_timeline(get_timeline_url(timeline_types[0]))
+            new_likes = handle_timeline(get_timeline_url(timeline_types[0]))
+            like_count += new_likes
+            log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
             # TODO add following list
             # TODO Add tag list to like
         log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
