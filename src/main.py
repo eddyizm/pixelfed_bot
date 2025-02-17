@@ -101,10 +101,10 @@ def filter_notification_faves(data: list, limit: int = 5) -> list:
     return list(unique_account_ids)[:limit]
 
 
-def get_status_by_id(id: str, limit: int = 6) -> dict:
+def get_status_by_id(id: str, limit: int = 6, follower: str = None) -> dict:
     url = f'{BASE_URL}{API_VERSION}accounts/{id}/statuses'
     param = {'limit': str(limit)}
-    log.info(f'getting timeline {id} @ {url}')
+    log.info(f'getting timeline {follower or id} @ {url}')
     response = requests.get(url, headers=headers, params=param)
     return response.json()
 
@@ -139,15 +139,21 @@ def get_timeline_url(timeline_type: str) -> tuple:
     return (f'{timeline_base}/{timeline_type}', timeline_type)
 
 
-def process_notification_timeline(url_args: tuple) -> int:
+def is_like_per_session_fulfilled(like_count: int) -> bool:
+    return like_count >= settings.likes_per_session
+
+
+def process_notification_timeline(url_args: tuple, like_count: int = 0) -> int:
     server_response = get_timeline(url=url_args[0], timeline_type=url_args[1])
     id_list = filter_notification_faves(server_response)
-    count = 0
     for id in id_list:
         server_response = get_status_by_id(id, limit=6)
         random_time()
-        count = count + fave_unfaved(server_response)
-    return count
+        new_likes = fave_unfaved(server_response)
+        like_count += new_likes
+        if is_like_per_session_fulfilled(like_count):
+            return like_count
+    return like_count
 
 
 def process_timeline(url_args: tuple) -> int:
@@ -156,16 +162,17 @@ def process_timeline(url_args: tuple) -> int:
 
 
 def process_follower_timeline() -> int:
+    log.info('Getting follower for timeline processing')
     followers = get_random_followers()
-    server_response = get_status_by_id(followers[0], limit=5)
+    server_response = get_status_by_id(followers[0][0], limit=5, follower=followers[0][1])
     random_time()
     return fave_unfaved(server_response, limit=settings.likes_per_session)
 
 
-def handle_timeline(url_args: tuple):
+def handle_timeline(url_args: tuple, like_count: int = 0):
     match url_args[1]:
         case 'notifications':
-            return process_notification_timeline(url_args)
+            return process_notification_timeline(url_args, like_count)
         case _:
             return process_timeline(url_args)
 
@@ -187,15 +194,16 @@ def main():
         url_args = get_timeline_url(args.timeline_type)
         like_count = handle_timeline(url_args)
         log.info(f'first pass count: {like_count}')
-        while like_count < settings.likes_per_session:
+        while not is_like_per_session_fulfilled(like_count):
+            log.info(f'Like count: {like_count} less than likes per session value: {settings.likes_per_session}')
             random_time()
             new_likes = process_follower_timeline()
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from follower timeline. Total likes: {like_count}')
-            if like_count >= settings.likes_per_session:
+            if is_like_per_session_fulfilled(like_count):
                 break
             random.shuffle(timeline_types)
-            new_likes = handle_timeline(get_timeline_url(timeline_types[0]))
+            new_likes = handle_timeline(get_timeline_url(timeline_types[0]), like_count)
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
             # TODO add following list 
