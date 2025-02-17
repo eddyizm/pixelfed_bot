@@ -149,8 +149,7 @@ def process_notification_timeline(url_args: tuple, like_count: int = 0) -> int:
     for id in id_list:
         server_response = get_status_by_id(id, limit=6)
         random_time()
-        new_likes = fave_unfaved(server_response)
-        like_count += new_likes
+        like_count += fave_unfaved(server_response)
         if is_like_per_session_fulfilled(like_count):
             return like_count
     return like_count
