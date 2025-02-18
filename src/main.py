@@ -21,13 +21,13 @@ handlers = [
 log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.INFO)
 
 
-timeline_types = ['home', 'public', 'notifications', 'global', 'tags']
+timeline_types = ['home', 'public', 'notifications', 'global', 'tag']
 verify_cred_endpoint = 'accounts/verify_credentials'
 
 
 def parse_timeline_for_favorites(data: list, limit: int = None) -> list:
     # filter only unfavorited status and ignore your own id.
-    result = [d for d in data if d['favourited'] is False and d['account']['id'] != settings.account_id]
+    result = [d for d in data if not d['favourited'] and d['account']['id'] != settings.account_id]
     if not result:
         log.info(f'No posts found: {len(result)}')
         return []

@@ -14,17 +14,17 @@ def get_timeline_url(timeline_type: str, settings: Settings) -> tuple:
     if timeline_type == 'notifications':
         return (f'{settings.base_url}{settings.api_version}{timeline_type}', timeline_type)
     if timeline_type == 'followers':
-        return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}?limit=50', timeline_type)
-    if timeline_type == 'tags':
+        return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}', timeline_type)
+    if timeline_type == 'tag':
         random.shuffle(settings.tags)
-        return (f'{settings.base_url}{settings.api_version}{timeline_type}/{settings.tags[0]}', settings.tags[0])
+        return (f'{timeline_base}/{timeline_type}/{settings.tags[0]}', settings.tags[0])
     return (f'{timeline_base}/{timeline_type}', timeline_type)
 
 
 def get_timeline(url: str, settings: Settings, timeline_type: str = 'home', limit: int = 10) -> dict:
     log.info(f'getting timeline {timeline_type} @ {url}')
+    limit = 50 if 'tag' in url or timeline_type == 'followers' else limit
     params = {
-        "min_id": 1,
         "limit": limit,
     }
     response = requests.get(url, headers=settings.headers, params=params)
