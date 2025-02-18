@@ -8,7 +8,6 @@ log = logging.getLogger(__name__)
 
 
 def create_tables():
-    log.info('creating tables')
     with create_connection() as cursor:
         log.info('creating followers table if not exists')
         cursor.execute('''
@@ -47,7 +46,7 @@ def load_followers() -> list:
     ''' returns list of follower ids '''
     with create_connection() as cursor:
         cursor.execute('''
-            select id from followers;
+            select id, username from followers;
         ''')
         data = cursor.fetchall()
-        return [id[0] for id in data]
+        return [id for id in data]

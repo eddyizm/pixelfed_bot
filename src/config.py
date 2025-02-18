@@ -13,6 +13,11 @@ class Settings:
         self.account_id = os.getenv('ACCOUNT_ID')
         self.likes_per_session = 10
         self.tags = ['nature', 'photography', 'blackandwhite', 'outdoors', 'naturephotography', 'california', 'architecture']
+        self.base_url = 'https://pixelfed.social/'
+        self.api_version = 'api/v1/'
+        self.headers = {
+            "Authorization": f"Bearer {self.token}"
+        }
 
 
 class PixelFedBotException(Exception):
