@@ -17,7 +17,7 @@ def get_timeline_url(timeline_type: str, settings: Settings) -> tuple:
         return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}?limit=50', timeline_type)
     if timeline_type == 'tags':
         random.shuffle(settings.tags)
-        return (f'{timeline_base}/{timeline_type}/tags/{settings.tags[0]}', settings.tags[0])
+        return (f'{settings.base_url}{settings.api_version}{timeline_type}/{settings.tags[0]}', settings.tags[0])
     return (f'{timeline_base}/{timeline_type}', timeline_type)
 
 
