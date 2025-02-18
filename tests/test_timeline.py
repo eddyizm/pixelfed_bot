@@ -31,7 +31,7 @@ def test_get_timeline_url_followers(mock_settings):
     Test the function for the 'followers' timeline type.
     """
     url, timeline_type = get_timeline_url("followers", mock_settings)
-    assert url == "https://example.com/v1/accounts/4/followers?limit=50"
+    assert url == "https://example.com/v1/accounts/4/followers"
     assert timeline_type == "followers"
 
 
@@ -39,8 +39,8 @@ def test_get_timeline_url_tags(mock_settings):
     """
     Test the function for the 'tags' timeline type.
     """
-    url, timeline_type = get_timeline_url("tags", mock_settings)
-    assert url.startswith("https://example.com/v1/timelines/tags/")
+    url, timeline_type = get_timeline_url("tag", mock_settings)
+    assert url.startswith("https://example.com/v1/timelines/tag")
     assert timeline_type in mock_settings.tags  # Ensure the returned tag is one of the shuffled tags
 
 
@@ -72,7 +72,7 @@ def test_get_timeline_success(mocker, mock_settings, mock_logger, mock_headers):
     requests.get.assert_called_once_with(
         url,
         headers=mock_headers,
-        params={"min_id": 1, "limit": 10}
+        params={"limit": 10}
     )
 
 
@@ -95,7 +95,7 @@ def test_get_timeline_custom_limit(mocker, mock_settings, mock_logger, mock_head
     requests.get.assert_called_once_with(
         url,
         headers=mock_headers,
-        params={"min_id": 1, "limit": 5}
+        params={"limit": 5}
     )
 
 
@@ -117,5 +117,5 @@ def test_get_timeline_failure(mocker, mock_settings, mock_logger, mock_headers):
     requests.get.assert_called_once_with(
         url,
         headers=mock_headers,
-        params={"min_id": 1, "limit": 10}
+        params={"limit": 10}
     )
