@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 
 from config import Settings, PixelFedBotException
 from dal import create_tables, load_followers
-from timelines import get_timeline_url, get_timeline
+from timelines import check_followers, get_timeline_url, get_timeline, get_following_list
 from utils import random_time
 
 settings = Settings()
@@ -21,7 +21,7 @@ handlers = [
 log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.INFO)
 
 
-timeline_types = ['home', 'public', 'notifications', 'global', 'tag']
+timeline_types = ['home', 'public', 'notifications', 'global', 'tag', 'check_f']
 verify_cred_endpoint = 'accounts/verify_credentials'
 
 
@@ -139,6 +139,9 @@ def main():
         log.info('starting pixelfed bot')
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
+        if args.timeline_type == 'check_f':
+            check_followers(settings=settings)
+            return
         url_args = get_timeline_url(args.timeline_type, settings)
         like_count = handle_timeline(url_args)
         log.info(f'first pass count: {like_count}')
@@ -155,7 +158,7 @@ def main():
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
             # TODO add following list
-            log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
+        log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
     except PixelFedBotException as ex:
         log.error(ex, exc_info=True)
 

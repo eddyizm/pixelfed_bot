@@ -17,6 +17,16 @@ def create_tables():
                 last_updated DATETIME
             )
         ''')
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS following (
+            id TEXT PRIMARY KEY,
+            username TEXT,
+            acct TEXT,
+            display_name TEXT,
+            created_at TEXT,
+            last_updated DATETIME default current_timestamp
+        )
+        ''')
 
 
 @contextmanager
@@ -32,7 +42,7 @@ def create_connection():
 
 
 def save_followers(server_response):
-    log.info('saving followers')
+    log.info('saving followers to database')
     with create_connection() as cursor:
         for record in server_response:
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -40,6 +50,21 @@ def save_followers(server_response):
             INSERT OR REPLACE INTO followers (id, username, last_updated)
             VALUES (?, ?, ?)
             ''', (record['id'], record['username'], current_time))
+
+
+def save_following(server_response):
+    log.info('saving following to database')
+    with create_connection() as cursor:
+        for record in server_response:
+            cursor.execute('''
+                INSERT INTO following (id, username, acct, display_name, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    username = excluded.username,
+                    acct = excluded.acct,
+                    display_name = excluded.display_name,
+                    created_at = excluded.created_at
+            ''', (record['id'], record['username'], record['acct'], record['display_name'], record['created_at']))
 
 
 def load_followers() -> list:
