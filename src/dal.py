@@ -140,17 +140,7 @@ def save_following(json_data):
             account.created_at,
             account.last_updated
         ))
-        log.info('Inserted {account.id}|{account.username} successfully!')
-        # for record in server_response:
-        #     cursor.execute('''
-        #         INSERT INTO following (id, username, acct, display_name, last_updated)
-        #         VALUES (?, ?, ?, ?, ?)
-        #         ON CONFLICT(id) DO UPDATE SET
-        #             username = excluded.username,
-        #             acct = excluded.acct,
-        #             display_name = excluded.display_name,
-        #             last_updated  = excluded.last_updated
-        #     ''', (record['id'], record['username'], record['acct'], record['display_name'], datetime.now()))
+        log.info(f'Inserted {account.id}|{account.username} successfully!')
 
 
 def load_followers() -> list:
