@@ -29,7 +29,6 @@ def follow_user(id: str, settings: Settings, server_response):
     response = post_timeline(url_args[0], settings, url_args[1])
     if response.status_code == 200:
         log.info('posted successfully')
-        breakpoint()
         save_following(server_response[0]['account'])
     return response
 

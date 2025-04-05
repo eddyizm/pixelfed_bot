@@ -26,6 +26,7 @@ def create_tables():
             display_name TEXT,
             followers_count INTEGER,
             following_count INTEGER,
+            statuses_count INTEGER, 
             created_at DATETIME default current_timestamp,
             last_updated DATETIME
         )
