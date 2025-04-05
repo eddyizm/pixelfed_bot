@@ -127,7 +127,7 @@ def save_following(json_data):
         INSERT INTO following (
             id, username, acct, display_name,
             followers_count, following_count, statuses_count,
-            created_at, last_status_at
+            created_at, last_updated
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             account.id,
