@@ -9,7 +9,7 @@ log = logging.getLogger(__name__)
 
 def create_tables():
     with create_connection() as cursor:
-        log.info('creating followers table if not exists')
+        log.info('creating tables if not exists')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS followers (
                 id TEXT PRIMARY KEY,
@@ -17,7 +17,6 @@ def create_tables():
                 last_updated DATETIME
             )
         ''')
-        log.info('creating following table if not exists')
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS following (
             id TEXT PRIMARY KEY,
@@ -26,12 +25,11 @@ def create_tables():
             display_name TEXT,
             followers_count INTEGER,
             following_count INTEGER,
-            statuses_count INTEGER, 
+            statuses_count INTEGER,
             created_at DATETIME default current_timestamp,
             last_updated DATETIME
         )
         ''')
-        log.info('creating relationships table if not exists')
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS relationships (
             id TEXT PRIMARY KEY,
@@ -51,7 +49,6 @@ def create_tables():
 
 @contextmanager
 def create_connection():
-    log.info('connecting to pixelfed.db')
     conn = sqlite3.connect('pixelfed.db')
     cursor = conn.cursor()
     try:
@@ -59,13 +56,11 @@ def create_connection():
     finally:
         conn.commit()
         conn.close()
-        log.info('db commit and connection closed')
 
 
 def count_todays_records() -> int:
     """Count how many records were created in the following table today"""
     with create_connection() as cursor:
-        # Query using DATE() function to compare just the date part
         cursor.execute("""
             SELECT COUNT(*)
             FROM following
@@ -96,6 +91,42 @@ def save_relationship(relationship: RelationshipStatus):
             int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
             int(relationship.endorsed)
         ))
+
+
+def get_relationship(relationship_id: str) -> RelationshipStatus:
+    """
+    Retrieve a relationship record from the database by ID.
+    Args:
+        relationship_id: The ID of the relationship to retrieve
+    Returns:
+        RelationshipStatus object if found, None if not found
+    """
+    log.info(f'Retrieving relationship record {relationship_id}')
+    with create_connection() as cursor:
+        cursor.execute("""
+        SELECT
+            id, following, followed_by, blocking, muting, 
+            muting_notifications, requested, domain_blocking, 
+            showing_reblogs, endorsed
+        FROM relationships
+        WHERE id = ?
+        """, (relationship_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        return RelationshipStatus(
+            id=row[0],
+            following=bool(row[1]),
+            followed_by=bool(row[2]),
+            blocking=bool(row[3]),
+            muting=bool(row[4]),
+            muting_notifications=bool(row[5]) if row[5] is not None else None,
+            requested=bool(row[6]),
+            domain_blocking=bool(row[7]) if row[7] is not None else None,
+            showing_reblogs=bool(row[8]) if row[8] is not None else None,
+            endorsed=bool(row[9])
+        )
 
 
 def save_followers(server_response):
