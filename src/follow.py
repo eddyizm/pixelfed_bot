@@ -27,6 +27,7 @@ def follow_user(id: str, settings: Settings, server_response):
     url_args = get_timeline_url('follow', settings, id)
     log.info(f'following user id: {id}')
     response = post_timeline(url_args[0], settings, url_args[1])
+    log.info(f'response.text{response.text}')
     if response.status_code == 200:
         log.info('posted successfully')
         save_following(server_response[0]['account'])
