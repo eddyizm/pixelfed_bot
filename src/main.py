@@ -101,10 +101,8 @@ def process_notification_timeline(url_args: tuple, follow_users: bool, like_coun
     id_list = filter_notification_faves(server_response)
     for id in id_list:
         status_response = get_status_by_id(id, limit=6)
-        
         if follow_users:
             response = follow_user(id, settings, status_response)
-        
         random_time()
         like_count += fave_unfaved(status_response)
         if is_like_per_session_fulfilled(like_count):
@@ -115,6 +113,11 @@ def process_notification_timeline(url_args: tuple, follow_users: bool, like_coun
 
 def process_timeline(url_args: tuple, follow_users: bool) -> int:
     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type=url_args[1])
+ 
+    if follow_users:
+            random_id = random.choice([sr['id'] for sr in server_response])
+            status_response = get_status_by_id(random_id, limit=1)
+            response = follow_user(random_id, settings, status_response)
     return fave_unfaved(server_response, limit=settings.likes_per_session)
 
 
@@ -150,11 +153,6 @@ def main():
         settings.likes_per_session = args.limit or settings.likes_per_session
         if args.timeline_type == 'check_f':
             pass
-            # FOLLOW_USERS = check_follow_count(settings)
-            # breakpoint()
-            # url_args = get_timeline_url(args.timeline_type, settings)
-            # process_notification_timeline(url_args=url_args, like_count=1)
-            # return
         url_args = get_timeline_url(args.timeline_type, settings)
         follow_users = check_follow_count(settings)
         like_count = handle_timeline(url_args, follow_users)
@@ -168,6 +166,7 @@ def main():
             if is_like_per_session_fulfilled(like_count):
                 break
             random.shuffle(timeline_types)
+            follow_users = check_follow_count(settings)
             new_likes = handle_timeline(get_timeline_url(timeline_types[0], settings), follow_users, like_count)
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
