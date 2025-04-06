@@ -35,6 +35,7 @@ def follow_user(id: str, settings: Settings, server_response):
 
 def check_follow_count(settings: Settings) -> bool:
     todays_follow_count = count_todays_records()
+    log.info(f'today\'s follow count: {todays_follow_count}')
     return settings.follows_per_day > todays_follow_count
 
 
