@@ -12,7 +12,7 @@ class Settings:
         self.app_log = os.getenv('APP_LOG')
         self.account_id = os.getenv('ACCOUNT_ID')
         self.likes_per_session = 10
-        self.follows_per_day = 1
+        self.follows_per_day = 2
         self.following_count_max = 100
         self.tags = ['nature', 'photography', 'blackandwhite', 'outdoors', 'naturephotography', 'california', 'architecture']
         self.base_url = 'https://pixelfed.social/'

@@ -37,6 +37,7 @@ def follow_user(id: str, settings: Settings, server_response):
 def check_follow_count(settings: Settings) -> bool:
     todays_follow_count = count_todays_records()
     log.info(f'today\'s follow count: {todays_follow_count}')
+    log.info(f'follow users? {settings.follows_per_day > todays_follow_count}')
     return settings.follows_per_day > todays_follow_count
 
 
@@ -60,6 +61,7 @@ def check_follow_count(settings: Settings) -> bool:
 
 
 def get_relationship(settings: Settings, id: str):
+
     url_args = get_timeline_url('relationships', settings, id)
     random_time()
     server_response = get_timeline(url=url_args[0], settings=settings)
