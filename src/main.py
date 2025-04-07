@@ -102,7 +102,7 @@ def process_notification_timeline(url_args: tuple, follow_users: bool, like_coun
     for id in id_list:
         status_response = get_status_by_id(id, limit=6)
         if follow_users:
-            response = follow_user(id, settings, status_response)
+            follow_user(id, settings, status_response)
         random_time()
         like_count += fave_unfaved(status_response)
         if is_like_per_session_fulfilled(like_count):
@@ -114,9 +114,9 @@ def process_notification_timeline(url_args: tuple, follow_users: bool, like_coun
 def process_timeline(url_args: tuple, follow_users: bool) -> int:
     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type=url_args[1])
     if follow_users:
-        random_id = random.choice([sr['id'] for sr in server_response])
+        random_id = random.choice([sr['account']['id'] for sr in server_response])
         status_response = get_status_by_id(random_id, limit=1)
-        response = follow_user(random_id, settings, status_response)
+        follow_user(random_id, settings, status_response)
     return fave_unfaved(server_response, limit=settings.likes_per_session)
 
 
@@ -152,6 +152,7 @@ def main():
         settings.likes_per_session = args.limit or settings.likes_per_session
         if args.timeline_type == 'check_f':
             follow_users = check_follow_count(settings)
+            # TODO add type for a simple report
             return
         url_args = get_timeline_url(args.timeline_type, settings)
         follow_users = check_follow_count(settings)

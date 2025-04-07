@@ -27,7 +27,7 @@ def follow_user(id: str, settings: Settings, server_response):
     url_args = get_timeline_url('follow', settings, id)
     log.info(f'following user id: {id}')
     response = post_timeline(url_args[0], settings, url_args[1])
-    log.info(f'response.text{response.text}')
+    log.info(f'response.status_code{response.status_code}')
     if response.status_code == 200:
         log.info('posted successfully')
         save_following(server_response[0]['account'])
@@ -61,10 +61,11 @@ def check_follow_count(settings: Settings) -> bool:
 
 
 def get_relationship(settings: Settings, id: str):
-
+    # TODO check for relationship and date in db first.
     url_args = get_timeline_url('relationships', settings, id)
     random_time()
-    server_response = get_timeline(url=url_args[0], settings=settings)
+    server_response = get_timeline(url=url_args[0], settings=settings, timeline_type='relationship')
+    log.info(f'getting server response from id: {server_response}')
     relationship = RelationshipStatus(**server_response[0])
     save_relationship(relationship)
     return relationship
