@@ -14,8 +14,8 @@ def random_time():
     return sleep_time
 
 
-def write_to_json(data):
-    with open('response.json', 'w') as json_file:
+def write_to_json(data, name: str = 'response'):
+    with open(f'{name}.json', 'w') as json_file:
         json.dump(data, json_file, indent=4)
 
 

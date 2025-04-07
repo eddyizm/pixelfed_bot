@@ -5,7 +5,8 @@ import logging as log
 from logging.handlers import RotatingFileHandler
 
 from config import Settings, PixelFedBotException
-from dal import create_tables, load_followers
+from dal import create_tables
+from follow import follow_user, get_random_followers, get_relationship, check_follow_count
 from timelines import get_timeline_url, get_timeline
 from utils import random_time
 
@@ -18,8 +19,7 @@ handlers = [
         backupCount=5, encoding=None, delay=0
     )
 ]
-log.basicConfig(format='%(asctime)s | %(levelname)s | %(message)s', handlers=handlers, level=log.INFO)
-
+log.basicConfig(format='%(asctime)s | %(levelname)s | %(filename)s:%(lineno)d | %(message)s', handlers=handlers, level=log.INFO)
 
 timeline_types = ['home', 'public', 'notifications', 'global', 'tag']
 verify_cred_endpoint = 'accounts/verify_credentials'
@@ -38,14 +38,6 @@ def parse_timeline_for_favorites(data: list, limit: int = None) -> list:
     return result
 
 
-def get_random_followers() -> list:
-    followers = load_followers()
-    log.info(f'follower count {len(followers)}')
-    log.info('getting random follower list. ')
-    random.shuffle(followers)
-    return followers[:10]
-
-
 def fave_post(status_id) -> int:
     url = f'{settings.base_url}{settings.api_version}statuses/{status_id}/favourite'
     response = requests.post(url, headers=settings.headers)
@@ -57,6 +49,18 @@ def fave_post(status_id) -> int:
     else:
         log.info(f'Request failed with status code {response.status_code}')
         return 0
+
+
+def filter_notification_follows(data: list, limit: int = 5) -> list:
+    log.info('filtering notification follows')
+    if limit < 1:
+        return []
+    faves = [d for d in data if d['type'] == 'follow']
+    unique_account_ids = set()
+    for item in faves:
+        if 'account' in item and 'id' in item['account']:
+            unique_account_ids.add(item['account']['id'])
+    return list(unique_account_ids)[:limit]
 
 
 def filter_notification_faves(data: list, limit: int = 5) -> list:
@@ -92,20 +96,27 @@ def is_like_per_session_fulfilled(like_count: int) -> bool:
     return like_count >= settings.likes_per_session
 
 
-def process_notification_timeline(url_args: tuple, like_count: int = 0) -> int:
+def process_notification_timeline(url_args: tuple, follow_users: bool, like_count: int = 0) -> int:
     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type=url_args[1])
     id_list = filter_notification_faves(server_response)
     for id in id_list:
-        server_response = get_status_by_id(id, limit=6)
+        status_response = get_status_by_id(id, limit=6)
+        if follow_users:
+            follow_user(id, settings, status_response)
         random_time()
-        like_count += fave_unfaved(server_response)
+        like_count += fave_unfaved(status_response)
         if is_like_per_session_fulfilled(like_count):
             return like_count
+        follow_users = check_follow_count(settings)
     return like_count
 
 
-def process_timeline(url_args: tuple) -> int:
+def process_timeline(url_args: tuple, follow_users: bool) -> int:
     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type=url_args[1])
+    if follow_users:
+        random_id = random.choice([sr['account']['id'] for sr in server_response])
+        status_response = get_status_by_id(random_id, limit=1)
+        follow_user(random_id, settings, status_response)
     return fave_unfaved(server_response, limit=settings.likes_per_session)
 
 
@@ -117,30 +128,36 @@ def process_follower_timeline() -> int:
     return fave_unfaved(server_response, limit=settings.likes_per_session)
 
 
-def handle_timeline(url_args: tuple, like_count: int = 0):
+def handle_timeline(url_args: tuple, follow_users: bool, like_count: int = 0):
     match url_args[1]:
         case 'notifications':
-            return process_notification_timeline(url_args, like_count)
+            return process_notification_timeline(url_args, follow_users, like_count)
         case _:
-            return process_timeline(url_args)
+            return process_timeline(url_args, follow_users)
 
 
 def main():
     try:
         parser = argparse.ArgumentParser(
-            description='Get home, public, notification timelines and like posts.',
+            description='Get home, public, notification timelines and like posts and follow users.',
             epilog='the pixels go on and on...',
             prog='Pixelfed Bot'
         )
-        parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help="timeline type", required=True)
-        parser.add_argument('-l', '--limit', type=int, help="override session like limit", required=False)
-        parser.add_argument('--version', action='version', version='%(prog)s 0.4')
+        parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help='timeline type', required=True)
+        parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
+        parser.add_argument('--report', action='store_true', help='print out db data')
+        parser.add_argument('--version', action='version', version='%(prog)s 0.5')
         args = parser.parse_args()
         log.info('starting pixelfed bot')
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
+        if args.report:
+            follow_users = check_follow_count(settings)
+            # TODO add type for a simple report
+            return
         url_args = get_timeline_url(args.timeline_type, settings)
-        like_count = handle_timeline(url_args)
+        follow_users = check_follow_count(settings)
+        like_count = handle_timeline(url_args, follow_users)
         log.info(f'first pass count: {like_count}')
         while not is_like_per_session_fulfilled(like_count):
             log.info(f'Like count: {like_count}, per session value: {settings.likes_per_session}')
@@ -151,11 +168,12 @@ def main():
             if is_like_per_session_fulfilled(like_count):
                 break
             random.shuffle(timeline_types)
-            new_likes = handle_timeline(get_timeline_url(timeline_types[0], settings), like_count)
+            follow_users = check_follow_count(settings)
+            new_likes = handle_timeline(get_timeline_url(timeline_types[0], settings), follow_users, like_count)
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
             # TODO add following list
-            log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
+        log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
     except PixelFedBotException as ex:
         log.error(ex, exc_info=True)
 
