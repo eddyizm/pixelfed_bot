@@ -27,7 +27,7 @@ def follow_user(id: str, settings: Settings, server_response):
     url_args = get_timeline_url('follow', settings, id)
     log.info(f'following user id: {id}')
     response = post_timeline(url_args[0], settings, url_args[1])
-    log.info(f'response.status_code{response.status_code}')
+    log.info(f'response.status_code: {response.status_code}')
     if response.status_code == 200:
         log.info('posted successfully')
         save_following(server_response[0]['account'])
@@ -76,7 +76,6 @@ def get_follower_list(settings: Settings):
     server_response = get_timeline(url=url_args[0], settings=settings)
     log.info(f'Getting current follower count: {len(server_response)}')
     save_followers(server_response)
-    # write_to_json(server_response, 'followers')
 
 
 def get_following_list(settings: Settings):
@@ -84,4 +83,3 @@ def get_following_list(settings: Settings):
     server_response = get_timeline(url=url_args[0], settings=settings)
     log.info(f'Getting current following count: {len(server_response)}')
     save_following(server_response)
-    # write_to_json(server_response, 'following')
