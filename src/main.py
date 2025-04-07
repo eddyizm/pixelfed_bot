@@ -21,7 +21,7 @@ handlers = [
 ]
 log.basicConfig(format='%(asctime)s | %(levelname)s | %(filename)s:%(lineno)d | %(message)s', handlers=handlers, level=log.INFO)
 
-timeline_types = ['home', 'public', 'notifications', 'global', 'tag', 'check_f']
+timeline_types = ['home', 'public', 'notifications', 'global', 'tag']
 verify_cred_endpoint = 'accounts/verify_credentials'
 
 
@@ -139,18 +139,19 @@ def handle_timeline(url_args: tuple, follow_users: bool, like_count: int = 0):
 def main():
     try:
         parser = argparse.ArgumentParser(
-            description='Get home, public, notification timelines and like posts.',
+            description='Get home, public, notification timelines and like posts and follow users.',
             epilog='the pixels go on and on...',
             prog='Pixelfed Bot'
         )
-        parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help="timeline type", required=True)
-        parser.add_argument('-l', '--limit', type=int, help="override session like limit", required=False)
+        parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help='timeline type', required=True)
+        parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
+        parser.add_argument('--report', action='store_true', help='print out db data')
         parser.add_argument('--version', action='version', version='%(prog)s 0.5')
         args = parser.parse_args()
         log.info('starting pixelfed bot')
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
-        if args.timeline_type == 'check_f':
+        if args.report:
             follow_users = check_follow_count(settings)
             # TODO add type for a simple report
             return
