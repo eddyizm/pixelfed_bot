@@ -10,6 +10,8 @@ log = logging.getLogger(__name__)
 
 def get_timeline_url(timeline_type: str, settings: Settings, id: str = None) -> tuple:
     timeline_base = f'{settings.base_url}{settings.api_version}timelines'
+    if timeline_type == 'account':
+        return (f'{settings.base_url}{settings.api_version}accounts/{id}', timeline_type)
     if timeline_type == 'global':
         return (f'{timeline_base}/public?min_id=1&limit=6&_pe=1&remote=true', timeline_type)
     if timeline_type == 'notifications':

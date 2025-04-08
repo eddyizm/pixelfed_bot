@@ -2,8 +2,13 @@ import logging
 import random
 
 from config import Settings
-from dal import count_todays_records, load_followers, save_followers, save_following, save_relationship
-from models import RelationshipStatus
+from dal import (
+    count_todays_records,
+    load_followers,
+    save_following,
+    save_relationship
+)
+from models import RelationshipStatus, Account, map_account
 from timelines import get_timeline_url, get_timeline, post_timeline
 from utils import random_time
 
@@ -19,10 +24,22 @@ def get_random_followers() -> list:
     return followers[:10]
 
 
+def get_account_details(id: str, settings: Settings):
+    url_args = get_timeline_url('account', settings, id)
+    account_response = get_timeline(url_args[0], settings, url_args[1])
+    account = map_account(account_response)
+    return account 
+
+
 def follow_user(id: str, settings: Settings, server_response):
     relationship = get_relationship(settings, id)
     if relationship.following:
         log.info('already following user..')
+        return
+    account = get_account_details(id, settings)
+    # TODO save account and check here
+    if account.followers_count > settings.follower_count_min and account.following_count < settings.following_count_max:
+        log.info(f'not meeting requirements in settings to follow, skipping.\nFollower count: {account.followers_count} Following count: {account.following_count}')
         return
     url_args = get_timeline_url('follow', settings, id)
     log.info(f'following user id: {id}')
@@ -75,7 +92,7 @@ def get_follower_list(settings: Settings):
     url_args = get_timeline_url('followers', settings)
     server_response = get_timeline(url=url_args[0], settings=settings)
     log.info(f'Getting current follower count: {len(server_response)}')
-    save_followers(server_response)
+    # save_followers(server_response)
 
 
 def get_following_list(settings: Settings):

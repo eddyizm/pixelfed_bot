@@ -2,7 +2,7 @@ import logging
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from models import RelationshipStatus, Account
+from models import RelationshipStatus, Account, map_account
 
 log = logging.getLogger(__name__)
 
@@ -10,13 +10,13 @@ log = logging.getLogger(__name__)
 def create_tables():
     with create_connection() as cursor:
         log.info('creating tables if not exists')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS followers (
-                id TEXT PRIMARY KEY,
-                username TEXT NOT NULL,
-                last_updated DATETIME
-            )
-        ''')
+        # cursor.execute('''
+        #     CREATE TABLE IF NOT EXISTS followers (
+        #         id TEXT PRIMARY KEY,
+        #         username TEXT NOT NULL,
+        #         last_updated DATETIME
+        #     )
+        # ''')
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS account (
             id TEXT PRIMARY KEY,
@@ -30,19 +30,19 @@ def create_tables():
             last_updated DATETIME
         )
         ''')
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS following (
-            id TEXT PRIMARY KEY,
-            username TEXT,
-            acct TEXT,
-            display_name TEXT,
-            followers_count INTEGER,
-            following_count INTEGER,
-            statuses_count INTEGER,
-            created_at DATETIME default current_timestamp,
-            last_updated DATETIME
-        )
-        ''')
+        # cursor.execute('''
+        # CREATE TABLE IF NOT EXISTS following (
+        #     id TEXT PRIMARY KEY,
+        #     username TEXT,
+        #     acct TEXT,
+        #     display_name TEXT,
+        #     followers_count INTEGER,
+        #     following_count INTEGER,
+        #     statuses_count INTEGER,
+        #     created_at DATETIME default current_timestamp,
+        #     last_updated DATETIME
+        # )
+        # ''')
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS relationships (
             id TEXT PRIMARY KEY,
@@ -75,9 +75,9 @@ def count_todays_records() -> int:
     """Count how many records were created in the following table today"""
     with create_connection() as cursor:
         cursor.execute("""
-            SELECT COUNT(*)
-            FROM following
-            WHERE DATE(created_at) = DATE('now')
+            SELECT COUNT(*) FROM relationships r
+            WHERE r."following" = 1 AND
+            DATE(created_at) = DATE('now')
         """)
         count = cursor.fetchone()[0]
     return count
@@ -147,7 +147,7 @@ def migrate():
     with create_connection() as cursor:
         log.info('inserting following to new account table')
         cursor.execute('''
-            INSERT INTO account
+            INSERT OR REPLACE INTO account
             (id, username, acct, display_name, followers_count, following_count, created_at, last_updated)
             SELECT id, username, acct, display_name, followers_count, following_count, created_at, last_updated
             FROM FOLLOWING;
@@ -155,37 +155,32 @@ def migrate():
         log.info(f'successfully inserted {cursor.rowcount} records')
         log.info('inserting followers to new account table')
         cursor.execute('''
-            INSERT INTO account
+            INSERT OR REPLACE INTO account
             (id, username, acct, display_name, followers_count, following_count, created_at, last_updated)
-            SELECT id, username, '', '', 0, 0, last_updated , last_updated FROM followers 
+            SELECT id, username, '', '', 0, 0, last_updated , last_updated FROM followers;
         ''')
         log.info(f'successfully inserted {cursor.rowcount} records')
+        log.info('inserting following to relationship table')
+        cursor.execute('''
+            INSERT OR REPLACE INTO relationships
+            (id, "following", followed_by, blocking, muting, muting_notifications, requested, domain_blocking, showing_reblogs, endorsed, created_at)
+            SELECT id, 1, 0, 0, 0, 0, 0, 0, 0, 0, last_updated FROM following f
+        ''')
         log.info('inserting followers to relationship table')
         cursor.execute('''
-            INSERT INTO relationships
+            INSERT OR REPLACE INTO relationships
             (id, "following", followed_by, blocking, muting, muting_notifications, requested, domain_blocking, showing_reblogs, endorsed, created_at)
-            SELECT id, username, '', '', 1, 0, 0, 0, 0, 0, last_updated FROM followers f
-
+            SELECT id, 0, 1, 0, 0, 0, 0, 0, 0, 0, last_updated FROM followers f
         ''')
         log.info(f'successfully inserted {cursor.rowcount} records')
 
 
 def save_following(json_data):
-    log.info('saving account to following table')
-    account = Account(
-        id=json_data['id'],
-        username=json_data['username'],
-        acct=json_data['acct'],
-        display_name=json_data['display_name'],
-        followers_count=json_data['followers_count'],
-        following_count=json_data['following_count'],
-        statuses_count=json_data['statuses_count'],
-        created_at=datetime.now(),
-        last_updated=datetime.now()
-    )
+    log.info('saving account')
+    account = map_account(json_data)
     with create_connection() as cursor:
         cursor.execute("""
-        INSERT INTO following (
+        INSERT INTO account (
             id, username, acct, display_name,
             followers_count, following_count, statuses_count,
             created_at, last_updated
@@ -208,7 +203,7 @@ def load_followers() -> list:
     ''' returns list of follower ids '''
     with create_connection() as cursor:
         cursor.execute('''
-            select id, username from followers;
+            SELECT id FROM relationships r WHERE followed_by = 1;
         ''')
         data = cursor.fetchall()
         return [id for id in data]

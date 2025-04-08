@@ -5,8 +5,12 @@ import logging as log
 from logging.handlers import RotatingFileHandler
 
 from config import Settings, PixelFedBotException
-from dal import create_tables
-from follow import follow_user, get_random_followers, get_relationship, check_follow_count
+from dal import create_tables, migrate
+from follow import (
+    follow_user,
+    get_random_followers,
+    check_follow_count
+)
 from timelines import get_timeline_url, get_timeline
 from utils import random_time
 
@@ -147,14 +151,14 @@ def main():
         parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
         parser.add_argument('--report', action='store_true', help='print out db data')
         parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
-        parser.add_argument('--version', action='version', version='%(prog)s 0.5')
+        parser.add_argument('--version', action='version', version='%(prog)s 1.0')
         args = parser.parse_args()
         log.info('starting pixelfed bot')
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
         if args.migrate:
             log.info('Testing migration')
-            # TODO migration logic
+            migrate()
             return
         if args.report:
             follow_users = check_follow_count(settings)

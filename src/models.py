@@ -28,3 +28,22 @@ class Account:
     following_count: Optional[int] = None
     statuses_count: Optional[int] = None
     last_updated: Optional[datetime] = None
+
+
+def map_account(account_response) -> Account:
+    try:
+        account = Account(
+            id=account_response['id'],
+            username=account_response['username'],
+            acct=account_response['acct'],
+            display_name=account_response['display_name'],
+            followers_count=account_response['followers_count'],
+            following_count=account_response['following_count'],
+            statuses_count=account_response['statuses_count'],
+            created_at=datetime.now(),
+            last_updated=datetime.now()
+        )
+    except Exception:
+        account = {}
+    finally:
+        return account
