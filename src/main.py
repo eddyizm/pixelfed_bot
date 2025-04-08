@@ -146,11 +146,16 @@ def main():
         parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help='timeline type', required=True)
         parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
         parser.add_argument('--report', action='store_true', help='print out db data')
+        parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
         parser.add_argument('--version', action='version', version='%(prog)s 0.5')
         args = parser.parse_args()
         log.info('starting pixelfed bot')
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
+        if args.migrate:
+            log.info('Testing migration')
+            # TODO migration logic
+            return
         if args.report:
             follow_users = check_follow_count(settings)
             # TODO add type for a simple report

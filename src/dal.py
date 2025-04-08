@@ -18,6 +18,19 @@ def create_tables():
             )
         ''')
         cursor.execute('''
+        CREATE TABLE IF NOT EXISTS account (
+            id TEXT PRIMARY KEY,
+            username TEXT,
+            acct TEXT,
+            display_name TEXT,
+            followers_count INTEGER,
+            following_count INTEGER,
+            statuses_count INTEGER,
+            created_at DATETIME default current_timestamp,
+            last_updated DATETIME
+        )
+        ''')
+        cursor.execute('''
         CREATE TABLE IF NOT EXISTS following (
             id TEXT PRIMARY KEY,
             username TEXT,
@@ -129,15 +142,32 @@ def get_relationship(relationship_id: str) -> RelationshipStatus:
         )
 
 
-def save_followers(server_response):
-    log.info('saving followers to database')
+def migrate():
+    log.info('migrating db to new versions')
     with create_connection() as cursor:
-        for record in server_response:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute('''
-            INSERT OR REPLACE INTO followers (id, username, last_updated)
-            VALUES (?, ?, ?)
-            ''', (record['id'], record['username'], current_time))
+        log.info('inserting following to new account table')
+        cursor.execute('''
+            INSERT INTO account
+            (id, username, acct, display_name, followers_count, following_count, created_at, last_updated)
+            SELECT id, username, acct, display_name, followers_count, following_count, created_at, last_updated
+            FROM FOLLOWING;
+        ''')
+        log.info(f'successfully inserted {cursor.rowcount} records')
+        log.info('inserting followers to new account table')
+        cursor.execute('''
+            INSERT INTO account
+            (id, username, acct, display_name, followers_count, following_count, created_at, last_updated)
+            SELECT id, username, '', '', 0, 0, last_updated , last_updated FROM followers 
+        ''')
+        log.info(f'successfully inserted {cursor.rowcount} records')
+        log.info('inserting followers to relationship table')
+        cursor.execute('''
+            INSERT INTO relationships
+            (id, "following", followed_by, blocking, muting, muting_notifications, requested, domain_blocking, showing_reblogs, endorsed, created_at)
+            SELECT id, username, '', '', 1, 0, 0, 0, 0, 0, last_updated FROM followers f
+
+        ''')
+        log.info(f'successfully inserted {cursor.rowcount} records')
 
 
 def save_following(json_data):
