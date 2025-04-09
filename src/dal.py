@@ -10,13 +10,12 @@ log = logging.getLogger(__name__)
 def create_tables():
     with create_connection() as cursor:
         log.info('creating tables if not exists')
-        # cursor.execute('''
-        #     CREATE TABLE IF NOT EXISTS followers (
-        #         id TEXT PRIMARY KEY,
-        #         username TEXT NOT NULL,
-        #         last_updated DATETIME
-        #     )
-        # ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ignore_account (
+                id TEXT PRIMARY KEY,
+                last_updated DATETIME default current_timestamp
+            )
+        ''')
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS account (
             id TEXT PRIMARY KEY,
@@ -88,8 +87,8 @@ def save_relationship(relationship: RelationshipStatus):
     with create_connection() as cursor:
         cursor.execute("""
         INSERT OR REPLACE INTO relationships (
-            id, following, followed_by, blocking, muting, 
-            muting_notifications, requested, domain_blocking, 
+            id, following, followed_by, blocking, muting,
+            muting_notifications, requested, domain_blocking,
             showing_reblogs, endorsed
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
@@ -175,7 +174,23 @@ def migrate():
         log.info(f'successfully inserted {cursor.rowcount} records')
 
 
-def save_following(json_data):
+def ignore_user(id: str) -> bool:
+    with create_connection() as cursor:
+        cursor.execute("""
+            select id from ignore_account where id = ?
+            """, (id,))
+        return cursor.rowcount > 0
+
+
+def add_to_ignore(id: str):
+    with create_connection() as cursor:
+        cursor.execute("""
+            INSERT INTO ignore_account ( id ) VALUES (?)
+            """, (id,))
+        log.info(f'added {id} to ignore_account successfully!')
+
+
+def save_following(json_data: dict):
     log.info('saving account')
     account = map_account(json_data)
     with create_connection() as cursor:

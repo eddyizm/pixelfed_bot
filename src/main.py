@@ -8,6 +8,7 @@ from config import Settings, PixelFedBotException
 from dal import create_tables, migrate
 from follow import (
     follow_user,
+    unfollow_user,
     get_random_followers,
     check_follow_count
 )
@@ -157,8 +158,8 @@ def main():
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
         if args.migrate:
-            log.info('Testing migration')
-            migrate()
+            log.info('testing functions')
+            # migrate()
             return
         if args.report:
             follow_users = check_follow_count(settings)
@@ -181,7 +182,6 @@ def main():
             new_likes = handle_timeline(get_timeline_url(timeline_types[0], settings), follow_users, like_count)
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
-            # TODO add following list
         log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
     except PixelFedBotException as ex:
         log.error(ex, exc_info=True)

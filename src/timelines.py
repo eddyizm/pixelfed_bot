@@ -19,7 +19,9 @@ def get_timeline_url(timeline_type: str, settings: Settings, id: str = None) -> 
     if timeline_type == 'relationships':
         return (f'{settings.base_url}{settings.api_version}accounts/{timeline_type}?id[]={id}', timeline_type)
     if timeline_type == 'follow':
-        return (f'{settings.base_url}{settings.api_version}accounts/{id}/follow', timeline_type)
+        return (f'{settings.base_url}{settings.api_version}accounts/{id}/{timeline_type}', timeline_type)
+    if timeline_type == 'unfollow':
+        return (f'{settings.base_url}{settings.api_version}accounts/{id}/{timeline_type}', timeline_type)
     if timeline_type == 'followers':
         return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}', timeline_type)
     if timeline_type == 'following':

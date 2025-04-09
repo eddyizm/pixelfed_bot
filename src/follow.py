@@ -3,7 +3,9 @@ import random
 
 from config import Settings
 from dal import (
+    add_to_ignore,
     count_todays_records,
+    ignore_user,
     load_followers,
     save_following,
     save_relationship
@@ -28,13 +30,28 @@ def get_account_details(id: str, settings: Settings):
     url_args = get_timeline_url('account', settings, id)
     account_response = get_timeline(url_args[0], settings, url_args[1])
     account = map_account(account_response)
-    return account 
+    return account
+
+
+def unfollow_user(id: str, settings: Settings):
+    url_args = get_timeline_url('unfollow', settings, id)
+    log.info(f'unfollowing user id: {id}')
+    response = post_timeline(url_args[0], settings, url_args[1])
+    log.info(f'response.status_code: {response.status_code}')
+    if response.status_code == 200:
+        relationship = RelationshipStatus(**response.json())
+        log.info('unfollowed successfully')
+        save_relationship(relationship)
+        add_to_ignore(relationship.id)
 
 
 def follow_user(id: str, settings: Settings, server_response):
     relationship = get_relationship(settings, id)
     if relationship.following:
         log.info('already following user..')
+        return
+    if ignore_user:
+        log.info('Account id found in ignore table, keep calm and carry on...')
         return
     account = get_account_details(id, settings)
     # TODO save account and check here
