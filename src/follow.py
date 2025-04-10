@@ -50,7 +50,7 @@ def follow_user(id: str, settings: Settings, server_response):
     if relationship.following:
         log.info('already following user..')
         return
-    if ignore_user:
+    if ignore_user(id):
         log.info('Account id found in ignore table, keep calm and carry on...')
         return
     account = get_account_details(id, settings)

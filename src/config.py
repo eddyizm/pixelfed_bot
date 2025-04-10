@@ -14,7 +14,7 @@ class Settings:
         self.likes_per_session = 10
         self.follows_per_day = 2
         self.following_count_max = 100
-        self.follower_count_min = 50
+        self.follower_count_min = 25
         self.tags = ['nature', 'photography', 'blackandwhite', 'outdoors', 'naturephotography', 'california', 'architecture']
         self.base_url = 'https://pixelfed.social/'
         self.api_version = 'api/v1/'
