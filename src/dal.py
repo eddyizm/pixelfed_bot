@@ -79,6 +79,7 @@ def count_todays_records() -> int:
             DATE(created_at) = DATE('now')
         """)
         count = cursor.fetchone()[0]
+    log.info(f'today\'s follow count: {count}')
     return count
 
 

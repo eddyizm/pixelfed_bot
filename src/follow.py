@@ -19,9 +19,9 @@ log = logging.getLogger(__name__)
 
 
 def get_random_followers() -> list:
+    log.info('getting random follower list. ')
     followers = load_followers()
     log.info(f'follower count {len(followers)}')
-    log.info('getting random follower list. ')
     random.shuffle(followers)
     return followers[:10]
 
@@ -70,7 +70,6 @@ def follow_user(id: str, settings: Settings, server_response):
 
 def check_follow_count(settings: Settings) -> bool:
     todays_follow_count = count_todays_records()
-    log.info(f'today\'s follow count: {todays_follow_count}')
     log.info(f'follow users? {settings.follows_per_day > todays_follow_count}')
     return settings.follows_per_day > todays_follow_count
 
