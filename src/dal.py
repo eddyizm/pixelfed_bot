@@ -219,7 +219,9 @@ def load_followers() -> list:
     ''' returns list of follower ids '''
     with create_connection() as cursor:
         cursor.execute('''
-            SELECT id FROM relationships r WHERE followed_by = 1;
+            SELECT r.id, a.username FROM relationships r
+                JOIN account a ON a.id = r.id
+            WHERE followed_by = 1;
         ''')
         data = cursor.fetchall()
         return [id for id in data]

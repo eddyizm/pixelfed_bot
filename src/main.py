@@ -152,7 +152,7 @@ def main():
         parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
         parser.add_argument('--report', action='store_true', help='print out db data')
         parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
-        parser.add_argument('--version', action='version', version='%(prog)s 1.3')
+        parser.add_argument('--version', action='version', version='%(prog)s 1.4')
         args = parser.parse_args()
         log.info('starting pixelfed bot')
         create_tables()
