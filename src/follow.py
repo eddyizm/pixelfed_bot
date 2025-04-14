@@ -58,11 +58,12 @@ def follow_user(id: str, settings: Settings, server_response):
     # TODO save account and check here
     # TODO move check logic to function
     log.info(f'Follower count: {account.followers_count} Following count: {account.following_count}')
+    log.info(f'settings.follower_count_min: {settings.follower_count_min} account.following_count: {account.following_count}')
     if account.followers_count > settings.follower_count_min:
-        log.info(f'Min follower count: {settings.follower_count_min} too low, skipping.')
+        log.info(f'account.followers_count: {account.followers_count} too low, skipping.')
         return
-    if account.following_count < settings.following_count_max:
-        log.info(f'Max following count: {settings.following_count_max} too high, skipping.')
+    if account.following_count > settings.following_count_max:
+        log.info(f'account.following_count: {account.following_count} too high, skipping.')
         return
     url_args = get_timeline_url('follow', settings, id)
     log.info(f'following user id: {id}')
