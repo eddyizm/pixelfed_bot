@@ -153,7 +153,7 @@ def main():
         parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
         parser.add_argument('--report', action='store_true', help='print out db data')
         parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
-        parser.add_argument('--version', action='version', version='%(prog)s 1.4')
+        parser.add_argument('--version', action='version', version='%(prog)s 1.5')
         # Add a standalone argument that bypasses other requirements
         parser.add_argument('--unfollow', type=str, help='Unfollow specific user')
         args, unknown = parser.parse_known_args()
