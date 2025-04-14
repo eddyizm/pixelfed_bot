@@ -3,6 +3,7 @@ import random
 import requests
 import logging as log
 from logging.handlers import RotatingFileHandler
+import sys
 
 from config import Settings, PixelFedBotException
 from dal import create_tables, migrate
@@ -153,8 +154,15 @@ def main():
         parser.add_argument('--report', action='store_true', help='print out db data')
         parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
         parser.add_argument('--version', action='version', version='%(prog)s 1.4')
-        args = parser.parse_args()
+        # Add a standalone argument that bypasses other requirements
+        parser.add_argument('--unfollow', type=str, help='Unfollow specific user')
+        args, unknown = parser.parse_known_args()
         log.info('starting pixelfed bot')
+
+        if args.unfollow:
+            unfollow_user(args.unfollow, settings)
+            sys.exit(0)
+        args = parser.parse_args()
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
         if args.migrate:
