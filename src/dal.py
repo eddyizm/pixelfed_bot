@@ -106,7 +106,7 @@ def save_relationship(relationship: RelationshipStatus):
         ))
 
 
-def get_relationship(relationship_id: str) -> RelationshipStatus:
+def get_relationship_record(relationship_id: str) -> RelationshipStatus:
     """
     Retrieve a relationship record from the database by ID.
     Args:
@@ -118,8 +118,8 @@ def get_relationship(relationship_id: str) -> RelationshipStatus:
     with create_connection() as cursor:
         cursor.execute("""
         SELECT
-            id, following, followed_by, blocking, muting, 
-            muting_notifications, requested, domain_blocking, 
+            id, following, followed_by, blocking, muting,
+            muting_notifications, requested, domain_blocking,
             showing_reblogs, endorsed
         FROM relationships
         WHERE id = ?

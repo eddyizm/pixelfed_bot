@@ -6,6 +6,7 @@ from dal import (
     add_to_ignore,
     count_todays_records,
     ignore_user,
+    get_relationship_record,
     load_followers,
     save_following,
     save_relationship
@@ -94,7 +95,9 @@ def check_follow_count(settings: Settings) -> bool:
 
 
 def get_relationship(settings: Settings, id: str):
-    # TODO check for relationship and date in db first.
+    relationship = get_relationship_record(id)
+    if relationship:
+        return relationship
     url_args = get_timeline_url('relationships', settings, id)
     random_time()
     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type='relationship')
