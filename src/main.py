@@ -144,6 +144,10 @@ def handle_timeline(url_args: tuple, follow_users: bool, like_count: int = 0):
 
 def main():
     try:
+        pre_parser = argparse.ArgumentParser(add_help=False)
+        pre_parser.add_argument('--unfollow', type=str, help='Unfollow specific user')
+        args, _ = pre_parser.parse_known_args()
+
         parser = argparse.ArgumentParser(
             description='Get home, public, notification timelines and like posts and follow users.',
             epilog='the pixels go on and on...',
@@ -153,13 +157,11 @@ def main():
         parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
         parser.add_argument('--report', action='store_true', help='print out db data')
         parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
-        parser.add_argument('--version', action='version', version='%(prog)s 1.5')
-        # Add a standalone argument that bypasses other requirements
-        parser.add_argument('--unfollow', type=str, help='Unfollow specific user')
-        args, unknown = parser.parse_known_args()
+        parser.add_argument('--version', action='version', version='%(prog)s 1.6')
         log.info('starting pixelfed bot')
 
         if args.unfollow:
+            breakpoint()
             unfollow_user(args.unfollow, settings)
             sys.exit(0)
         args = parser.parse_args()
