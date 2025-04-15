@@ -58,8 +58,8 @@ def follow_user(id: str, settings: Settings, server_response):
     # TODO save account and check here
     # TODO move check logic to function
     log.info(f'Follower count: {account.followers_count} Following count: {account.following_count}')
-    log.info(f'settings.follower_count_min: {settings.follower_count_min} account.following_count: {account.following_count}')
-    if account.followers_count > settings.follower_count_min:
+    log.info(f'settings.follower_count_min: {settings.follower_count_min} settings.following_count_max: {settings.following_count_max}')
+    if account.followers_count < settings.follower_count_min:
         log.info(f'account.followers_count: {account.followers_count} too low, skipping.')
         return
     if account.following_count > settings.following_count_max:
@@ -107,7 +107,7 @@ def get_relationship(settings: Settings, id: str):
     url_args = get_timeline_url('relationships', settings, id)
     random_time()
     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type='relationship')
-    log.info(f'getting server response from id: {server_response}')
+    # log.info(f'getting server response from id: {server_response}')
     relationship = RelationshipStatus(**server_response[0])
     save_relationship(relationship)
     return relationship
