@@ -62,7 +62,7 @@ def follow_user(id: str, settings: Settings, server_response):
     if account.followers_count < settings.follower_count_min:
         log.info(f'account.followers_count: {account.followers_count} too low, skipping.')
         return
-    if account.following_count > settings.following_count_max:
+    if account.following_count < 10 or account.following_count > settings.following_count_max:
         log.info(f'account.following_count: {account.following_count} too high, skipping.')
         return
     url_args = get_timeline_url('follow', settings, id)
