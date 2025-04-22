@@ -196,7 +196,7 @@ def save_following(json_data: dict):
     account = map_account(json_data)
     with create_connection() as cursor:
         cursor.execute("""
-        INSERT INTO account (
+        INSERT OR REPLACE INTO account (
             id, username, acct, display_name,
             followers_count, following_count, statuses_count,
             created_at, last_updated
