@@ -12,7 +12,7 @@ class Settings:
         self.app_log = os.getenv('APP_LOG')
         self.account_id = os.getenv('ACCOUNT_ID')
         self.likes_per_session = 10
-        self.follows_per_day = 2
+        self.follows_per_day = 3
         self.following_count_max = 200
         self.follower_count_min = 25
         self.tags = ['nature', 'photography', 'blackandwhite', 'outdoors', 'naturephotography', 'california', 'architecture']

@@ -76,7 +76,7 @@ def count_todays_records() -> int:
         cursor.execute("""
             SELECT COUNT(*) FROM relationships r
             WHERE r."following" = 1 AND
-            DATE(created_at) = DATE('now')
+            DATE(created_at) BETWEEN DATE('now', '-7 days') AND DATE('now')
         """)
         count = cursor.fetchone()[0]
     log.info(f'today\'s follow count: {count}')
