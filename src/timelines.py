@@ -25,7 +25,7 @@ def get_timeline_url(timeline_type: str, settings: Settings, id: str = None) -> 
     if timeline_type == 'followers':
         return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}', timeline_type)
     if timeline_type == 'following':
-        return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}?limit=50', timeline_type)    
+        return (f'{settings.base_url}{settings.api_version}accounts/{settings.account_id}/{timeline_type}?limit=50', timeline_type)
     if timeline_type == 'tag':
         random.shuffle(settings.tags)
         return (f'{timeline_base}/{timeline_type}/{settings.tags[0]}', settings.tags[0])

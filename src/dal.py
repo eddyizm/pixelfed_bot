@@ -86,24 +86,63 @@ def count_todays_records() -> int:
 def save_relationship(relationship: RelationshipStatus):
     log.info(f'Saving relationship record {relationship.id}')
     with create_connection() as cursor:
-        cursor.execute("""
-        INSERT OR REPLACE INTO relationships (
-            id, following, followed_by, blocking, muting,
-            muting_notifications, requested, domain_blocking,
-            showing_reblogs, endorsed
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            relationship.id,
-            int(relationship.following),
-            int(relationship.followed_by),
-            int(relationship.blocking),
-            int(relationship.muting),
-            int(relationship.muting_notifications) if relationship.muting_notifications is not None else None,
-            int(relationship.requested),
-            int(relationship.domain_blocking) if relationship.domain_blocking is not None else None,
-            int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
-            int(relationship.endorsed)
-        ))
+        cursor.execute("SELECT id FROM account WHERE id = ?", (relationship.id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            cursor.execute("""
+            UPDATE relationships SET
+                following = ?,
+                followed_by = ?,
+                blocking = ?,
+                muting = ?,
+                muting_notifications = ?,
+                requested = ?,
+                domain_blocking = ?,
+                showing_reblogs = ?,
+                endorsed = ?
+            WHERE id =?
+            """, (
+                int(relationship.following),
+                int(relationship.followed_by),
+                int(relationship.blocking),
+                int(relationship.muting),
+                int(relationship.muting_notifications) if relationship.muting_notifications is not None else None,
+                int(relationship.requested),
+                int(relationship.domain_blocking) if relationship.domain_blocking is not None else None,
+                int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
+                int(relationship.endorsed),
+                relationship.id
+            ))
+            log.info(f'Successfully updated relationship record {relationship.id}')
+        else:
+            log.info(f'Inserting new account {relationship.id}')
+            cursor.execute("""
+            INSERT INTO relationships (
+                id,
+                following,
+                followed_by,
+                blocking,
+                muting,
+                muting_notifications,
+                requested,
+                domain_blocking,
+                showing_reblogs,
+                endorsed
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                relationship.id,
+                int(relationship.following),
+                int(relationship.followed_by),
+                int(relationship.blocking),
+                int(relationship.muting),
+                int(relationship.muting_notifications) if relationship.muting_notifications is not None else None,
+                int(relationship.requested),
+                int(relationship.domain_blocking) if relationship.domain_blocking is not None else None,
+                int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
+                int(relationship.endorsed)
+            ))
+            log.info(f'Successfully inserted new relationship record {relationship.id}')        
 
 
 def get_relationship_record(relationship_id: str) -> RelationshipStatus:
@@ -195,24 +234,50 @@ def save_following(json_data: dict):
     log.info('saving account')
     account = map_account(json_data)
     with create_connection() as cursor:
-        cursor.execute("""
-        INSERT OR REPLACE INTO account (
-            id, username, acct, display_name,
-            followers_count, following_count, statuses_count,
-            created_at, last_updated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            account.id,
-            account.username,
-            account.acct,
-            account.display_name,
-            account.followers_count,
-            account.following_count,
-            account.statuses_count,
-            account.created_at,
-            account.last_updated
-        ))
-        log.info(f'Inserted {account.id}|{account.username} successfully!')
+        cursor.execute("SELECT id FROM account WHERE id = ?", (account.id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            cursor.execute("""
+            UPDATE account SET
+                username = ?,
+                acct = ?,
+                display_name = ?,
+                followers_count = ?,
+                following_count = ?,
+                statuses_count = ?,
+                last_updated = ?
+            WHERE id = ?
+            """, (
+                account.username,
+                account.acct,
+                account.display_name,
+                account.followers_count,
+                account.following_count,
+                account.statuses_count,
+                account.last_updated,
+                account.id
+            ))
+            log.info(f'Updated {account.id}|{account.username} successfully!')
+        else:
+            cursor.execute("""
+            INSERT INTO account (
+                id, username, acct, display_name,
+                followers_count, following_count, statuses_count,
+                created_at, last_updated
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                account.id,
+                account.username,
+                account.acct,
+                account.display_name,
+                account.followers_count,
+                account.following_count,
+                account.statuses_count,
+                account.created_at,
+                account.last_updated
+            ))
+            log.info(f'Inserted {account.id}|{account.username} successfully!')
 
 
 def load_followers() -> list:
