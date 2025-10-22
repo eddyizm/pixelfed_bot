@@ -101,16 +101,16 @@ def save_relationship(relationship: RelationshipStatus):
                 domain_blocking = ?,
                 showing_reblogs = ?,
                 endorsed = ?
-            WHERE id =?
+            WHERE id = ?
             """, (
                 int(relationship.following),
                 int(relationship.followed_by),
                 int(relationship.blocking),
                 int(relationship.muting),
-                int(relationship.muting_notifications) if relationship.muting_notifications is not None else None,
+                int(relationship.muting_notifications) or None,
                 int(relationship.requested),
-                int(relationship.domain_blocking) if relationship.domain_blocking is not None else None,
-                int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
+                int(relationship.domain_blocking) or None,
+                int(relationship.showing_reblogs) or None,
                 int(relationship.endorsed),
                 relationship.id
             ))
@@ -136,10 +136,10 @@ def save_relationship(relationship: RelationshipStatus):
                 int(relationship.followed_by),
                 int(relationship.blocking),
                 int(relationship.muting),
-                int(relationship.muting_notifications) if relationship.muting_notifications is not None else None,
+                int(relationship.muting_notifications) or None,
                 int(relationship.requested),
-                int(relationship.domain_blocking) if relationship.domain_blocking is not None else None,
-                int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
+                int(relationship.domain_blocking) or None,
+                int(relationship.showing_reblogs) or None,
                 int(relationship.endorsed)
             ))
             log.info(f'Successfully inserted new relationship record {relationship.id}')        
@@ -215,11 +215,14 @@ def migrate():
 
 
 def ignore_user(id: str) -> bool:
+    log.info('checking if user id is in ignore table')
     with create_connection() as cursor:
         cursor.execute("""
             select id from ignore_account where id = ?
             """, (id,))
-        return cursor.rowcount > 0
+        result = cursor.rowcount > 0
+        log.info(f'user found: {result}')
+        return result
 
 
 def add_to_ignore(id: str):
@@ -286,7 +289,8 @@ def load_followers() -> list:
         cursor.execute('''
             SELECT r.id, a.username FROM relationships r
                 JOIN account a ON a.id = r.id
-            WHERE followed_by = 1;
+            WHERE followed_by = 1
+            AND a.id NOT IN (select id from ignore_account);
         ''')
         data = cursor.fetchall()
         return [id for id in data]

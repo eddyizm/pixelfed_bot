@@ -42,8 +42,8 @@ def unfollow_user(id: str, settings: Settings):
     if response.status_code == 200:
         relationship = RelationshipStatus(**response.json())
         log.info('unfollowed successfully')
-        save_relationship(relationship)
         add_to_ignore(relationship.id)
+        save_relationship(relationship)
 
 
 def follow_user(id: str, settings: Settings, server_response):
@@ -84,8 +84,8 @@ def check_follow_count(settings: Settings) -> bool:
 # def process_follows(url_args: tuple, like_count: int = 0) -> int:
 #     server_response = get_timeline(url=url_args[0], settings=settings, timeline_type=url_args[1])
 #     breakpoint()
-#     id_list = filter_notification_follows(server_response)
 #     for id in id_list:
+#     id_list = filter_notification_follows(server_response)
 #         server_response = get_status_by_id(id, limit=6)
 #         random_time()
 #         result = check_relationship(settings, id)
