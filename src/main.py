@@ -3,10 +3,16 @@ import random
 import requests
 import logging as log
 from logging.handlers import RotatingFileHandler
+import sys
 
 from config import Settings, PixelFedBotException
-from dal import create_tables
-from follow import follow_user, get_random_followers, get_relationship, check_follow_count
+from dal import create_tables, migrate
+from follow import (
+    follow_user,
+    unfollow_user,
+    get_random_followers,
+    check_follow_count
+)
 from timelines import get_timeline_url, get_timeline
 from utils import random_time
 
@@ -138,6 +144,10 @@ def handle_timeline(url_args: tuple, follow_users: bool, like_count: int = 0):
 
 def main():
     try:
+        pre_parser = argparse.ArgumentParser(add_help=False)
+        pre_parser.add_argument('--unfollow', type=str, help='Unfollow specific user')
+        args, _ = pre_parser.parse_known_args()
+
         parser = argparse.ArgumentParser(
             description='Get home, public, notification timelines and like posts and follow users.',
             epilog='the pixels go on and on...',
@@ -146,13 +156,21 @@ def main():
         parser.add_argument('-t', '--timeline_type', type=str, choices=(timeline_types), help='timeline type', required=True)
         parser.add_argument('-l', '--limit', type=int, help='override session like limit', required=False)
         parser.add_argument('--report', action='store_true', help='print out db data')
-        parser.add_argument('--version', action='version', version='%(prog)s 0.5')
-        args = parser.parse_args()
+        parser.add_argument('--migrate', action='store_true', help='run migrations, manual flag')
+        parser.add_argument('--version', action='version', version='%(prog)s 1.8')
         log.info('starting pixelfed bot')
+
+        if args.unfollow:
+            unfollow_user(args.unfollow, settings)
+            sys.exit(0)
+        args = parser.parse_args()
         create_tables()
         settings.likes_per_session = args.limit or settings.likes_per_session
+        if args.migrate:
+            log.info('testing functions')
+            return
         if args.report:
-            follow_users = check_follow_count(settings)
+            check_follow_count(settings)
             # TODO add type for a simple report
             return
         url_args = get_timeline_url(args.timeline_type, settings)
@@ -172,7 +190,6 @@ def main():
             new_likes = handle_timeline(get_timeline_url(timeline_types[0], settings), follow_users, like_count)
             like_count += new_likes
             log.info(f'Liked {new_likes} posts from {timeline_types[0]} timeline. Total likes: {like_count}')
-            # TODO add following list
         log.info(f'Reached total like count: {like_count} exceeding {settings.likes_per_session}')
     except PixelFedBotException as ex:
         log.error(ex, exc_info=True)

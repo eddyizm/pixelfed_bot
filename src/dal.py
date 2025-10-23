@@ -2,7 +2,7 @@ import logging
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
-from models import RelationshipStatus, Account
+from models import RelationshipStatus, Account, map_account
 
 log = logging.getLogger(__name__)
 
@@ -11,14 +11,13 @@ def create_tables():
     with create_connection() as cursor:
         log.info('creating tables if not exists')
         cursor.execute('''
-            CREATE TABLE IF NOT EXISTS followers (
+            CREATE TABLE IF NOT EXISTS ignore_account (
                 id TEXT PRIMARY KEY,
-                username TEXT NOT NULL,
-                last_updated DATETIME
+                last_updated DATETIME default current_timestamp
             )
         ''')
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS following (
+        CREATE TABLE IF NOT EXISTS account (
             id TEXT PRIMARY KEY,
             username TEXT,
             acct TEXT,
@@ -30,6 +29,19 @@ def create_tables():
             last_updated DATETIME
         )
         ''')
+        # cursor.execute('''
+        # CREATE TABLE IF NOT EXISTS following (
+        #     id TEXT PRIMARY KEY,
+        #     username TEXT,
+        #     acct TEXT,
+        #     display_name TEXT,
+        #     followers_count INTEGER,
+        #     following_count INTEGER,
+        #     statuses_count INTEGER,
+        #     created_at DATETIME default current_timestamp,
+        #     last_updated DATETIME
+        # )
+        # ''')
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS relationships (
             id TEXT PRIMARY KEY,
@@ -62,38 +74,78 @@ def count_todays_records() -> int:
     """Count how many records were created in the following table today"""
     with create_connection() as cursor:
         cursor.execute("""
-            SELECT COUNT(*)
-            FROM following
-            WHERE DATE(created_at) = DATE('now')
+            SELECT COUNT(*) FROM relationships r
+            WHERE r."following" = 1 AND
+            DATE(created_at) BETWEEN DATE('now', '-7 days') AND DATE('now')
         """)
         count = cursor.fetchone()[0]
+    log.info(f'today\'s follow count: {count}')
     return count
 
 
 def save_relationship(relationship: RelationshipStatus):
     log.info(f'Saving relationship record {relationship.id}')
     with create_connection() as cursor:
-        cursor.execute("""
-        INSERT OR REPLACE INTO relationships (
-            id, following, followed_by, blocking, muting, 
-            muting_notifications, requested, domain_blocking, 
-            showing_reblogs, endorsed
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            relationship.id,
-            int(relationship.following),
-            int(relationship.followed_by),
-            int(relationship.blocking),
-            int(relationship.muting),
-            int(relationship.muting_notifications) if relationship.muting_notifications is not None else None,
-            int(relationship.requested),
-            int(relationship.domain_blocking) if relationship.domain_blocking is not None else None,
-            int(relationship.showing_reblogs) if relationship.showing_reblogs is not None else None,
-            int(relationship.endorsed)
-        ))
+        cursor.execute("SELECT id FROM account WHERE id = ?", (relationship.id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            cursor.execute("""
+            UPDATE relationships SET
+                following = ?,
+                followed_by = ?,
+                blocking = ?,
+                muting = ?,
+                muting_notifications = ?,
+                requested = ?,
+                domain_blocking = ?,
+                showing_reblogs = ?,
+                endorsed = ?
+            WHERE id = ?
+            """, (
+                int(relationship.following),
+                int(relationship.followed_by),
+                int(relationship.blocking),
+                int(relationship.muting),
+                int(relationship.muting_notifications) or None,
+                int(relationship.requested),
+                int(relationship.domain_blocking) or None,
+                int(relationship.showing_reblogs) or None,
+                int(relationship.endorsed),
+                relationship.id
+            ))
+            log.info(f'Successfully updated relationship record {relationship.id}')
+        else:
+            log.info(f'Inserting new account {relationship.id}')
+            cursor.execute("""
+            INSERT INTO relationships (
+                id,
+                following,
+                followed_by,
+                blocking,
+                muting,
+                muting_notifications,
+                requested,
+                domain_blocking,
+                showing_reblogs,
+                endorsed
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                relationship.id,
+                int(relationship.following),
+                int(relationship.followed_by),
+                int(relationship.blocking),
+                int(relationship.muting),
+                int(relationship.muting_notifications) or None,
+                int(relationship.requested),
+                int(relationship.domain_blocking) or None,
+                int(relationship.showing_reblogs) or None,
+                int(relationship.endorsed)
+            ))
+            log.info(f'Successfully inserted new relationship record {relationship.id}')        
 
 
-def get_relationship(relationship_id: str) -> RelationshipStatus:
+def get_relationship_record(relationship_id: str) -> RelationshipStatus:
     """
     Retrieve a relationship record from the database by ID.
     Args:
@@ -105,8 +157,8 @@ def get_relationship(relationship_id: str) -> RelationshipStatus:
     with create_connection() as cursor:
         cursor.execute("""
         SELECT
-            id, following, followed_by, blocking, muting, 
-            muting_notifications, requested, domain_blocking, 
+            id, following, followed_by, blocking, muting,
+            muting_notifications, requested, domain_blocking,
             showing_reblogs, endorsed
         FROM relationships
         WHERE id = ?
@@ -129,56 +181,116 @@ def get_relationship(relationship_id: str) -> RelationshipStatus:
         )
 
 
-def save_followers(server_response):
-    log.info('saving followers to database')
+def migrate():
+    log.info('migrating db to new versions')
     with create_connection() as cursor:
-        for record in server_response:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            cursor.execute('''
-            INSERT OR REPLACE INTO followers (id, username, last_updated)
-            VALUES (?, ?, ?)
-            ''', (record['id'], record['username'], current_time))
+        log.info('inserting following to new account table')
+        cursor.execute('''
+            INSERT OR REPLACE INTO account
+            (id, username, acct, display_name, followers_count, following_count, created_at, last_updated)
+            SELECT id, username, acct, display_name, followers_count, following_count, created_at, last_updated
+            FROM FOLLOWING;
+        ''')
+        log.info(f'successfully inserted {cursor.rowcount} records')
+        log.info('inserting followers to new account table')
+        cursor.execute('''
+            INSERT OR REPLACE INTO account
+            (id, username, acct, display_name, followers_count, following_count, created_at, last_updated)
+            SELECT id, username, '', '', 0, 0, last_updated , last_updated FROM followers;
+        ''')
+        log.info(f'successfully inserted {cursor.rowcount} records')
+        log.info('inserting following to relationship table')
+        cursor.execute('''
+            INSERT OR REPLACE INTO relationships
+            (id, "following", followed_by, blocking, muting, muting_notifications, requested, domain_blocking, showing_reblogs, endorsed, created_at)
+            SELECT id, 1, 0, 0, 0, 0, 0, 0, 0, 0, last_updated FROM following f
+        ''')
+        log.info('inserting followers to relationship table')
+        cursor.execute('''
+            INSERT OR REPLACE INTO relationships
+            (id, "following", followed_by, blocking, muting, muting_notifications, requested, domain_blocking, showing_reblogs, endorsed, created_at)
+            SELECT id, 0, 1, 0, 0, 0, 0, 0, 0, 0, last_updated FROM followers f
+        ''')
+        log.info(f'successfully inserted {cursor.rowcount} records')
 
 
-def save_following(json_data):
-    log.info('saving account to following table')
-    account = Account(
-        id=json_data['id'],
-        username=json_data['username'],
-        acct=json_data['acct'],
-        display_name=json_data['display_name'],
-        followers_count=json_data['followers_count'],
-        following_count=json_data['following_count'],
-        statuses_count=json_data['statuses_count'],
-        created_at=datetime.now(),
-        last_updated=datetime.now()
-    )
+def ignore_user(id: str) -> bool:
+    log.info('checking if user id is in ignore table')
     with create_connection() as cursor:
         cursor.execute("""
-        INSERT INTO following (
-            id, username, acct, display_name,
-            followers_count, following_count, statuses_count,
-            created_at, last_updated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            account.id,
-            account.username,
-            account.acct,
-            account.display_name,
-            account.followers_count,
-            account.following_count,
-            account.statuses_count,
-            account.created_at,
-            account.last_updated
-        ))
-        log.info(f'Inserted {account.id}|{account.username} successfully!')
+            select id from ignore_account where id = ?
+            """, (id,))
+        result = cursor.rowcount > 0
+        log.info(f'user found: {result}')
+        return result
+
+
+def add_to_ignore(id: str):
+    with create_connection() as cursor:
+        cursor.execute("""
+            INSERT INTO ignore_account ( id ) VALUES (?)
+            """, (id,))
+        log.info(f'added {id} to ignore_account successfully!')
+
+
+def save_following(json_data: dict):
+    log.info('saving account')
+    account = map_account(json_data)
+    with create_connection() as cursor:
+        cursor.execute("SELECT id FROM account WHERE id = ?", (account.id,))
+        exists = cursor.fetchone()
+
+        if exists:
+            cursor.execute("""
+            UPDATE account SET
+                username = ?,
+                acct = ?,
+                display_name = ?,
+                followers_count = ?,
+                following_count = ?,
+                statuses_count = ?,
+                last_updated = ?
+            WHERE id = ?
+            """, (
+                account.username,
+                account.acct,
+                account.display_name,
+                account.followers_count,
+                account.following_count,
+                account.statuses_count,
+                account.last_updated,
+                account.id
+            ))
+            log.info(f'Updated {account.id}|{account.username} successfully!')
+        else:
+            cursor.execute("""
+            INSERT INTO account (
+                id, username, acct, display_name,
+                followers_count, following_count, statuses_count,
+                created_at, last_updated
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                account.id,
+                account.username,
+                account.acct,
+                account.display_name,
+                account.followers_count,
+                account.following_count,
+                account.statuses_count,
+                account.created_at,
+                account.last_updated
+            ))
+            log.info(f'Inserted {account.id}|{account.username} successfully!')
 
 
 def load_followers() -> list:
     ''' returns list of follower ids '''
     with create_connection() as cursor:
         cursor.execute('''
-            select id, username from followers;
+            SELECT r.id, a.username FROM relationships r
+                JOIN account a ON a.id = r.id
+            WHERE followed_by = 1
+            AND a.id NOT IN (select id from ignore_account);
         ''')
         data = cursor.fetchall()
         return [id for id in data]
