@@ -15,7 +15,7 @@ class Settings:
         self.follows_per_day = 0
         self.following_count_max = 200
         self.follower_count_min = 25
-        self.tags = ['nature', 'photography', 'blackandwhite', 'outdoors', 'naturephotography', 'california', 'architecture']
+        self.tags = ['runnersofmastodon', 'WindowFriday', 'minimalism', 'streetphotography', 'pnw', 'snow', 'birdwatching']
         self.base_url = 'https://pixelfed.social/'
         self.api_version = 'api/v1/'
         self.headers = {
