@@ -1,6 +1,3 @@
-I reviewed the repo intent and created a more complete README.md to document setup, configuration, usage, and testing for the `pixelfed_bot` project.
-
-
 # PixelFed Bot
 
 A small automation bot for PixelFed. This repository contains the code and configuration needed to run a PixelFed client bot, including setup and run instructions.
