@@ -62,6 +62,7 @@ def test_get_timeline_success(mocker, mock_settings, mock_logger, mock_headers):
     mock_response.status_code = 200
     mock_response.json.return_value = {"data": "timeline_data"}
     mocker.patch("requests.get", return_value=mock_response)
+    mocker.patch("timelines.random_time", return_value=0)
 
     # Call the function
     url = "https://example.com/api/timeline"
@@ -85,6 +86,7 @@ def test_get_timeline_custom_limit(mocker, mock_settings, mock_logger, mock_head
     mock_response.status_code = 200
     mock_response.json.return_value = {"data": "timeline_data"}
     mocker.patch("requests.get", return_value=mock_response)
+    mocker.patch("timelines.random_time", return_value=0)
 
     # Call the function with a custom limit
     url = "https://example.com/api/timeline"
@@ -107,6 +109,7 @@ def test_get_timeline_failure(mocker, mock_settings, mock_logger, mock_headers):
     mock_response = Mock()
     mock_response.status_code = 404
     mocker.patch("requests.get", return_value=mock_response)
+    mocker.patch("timelines.random_time", return_value=0)
     # headers = mock_headers
     # Call the function
     url = "https://example.com/api/timeline"
